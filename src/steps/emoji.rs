@@ -1,3 +1,4 @@
+// use colored::Colorize;
 use dialoguer::theme::ColorfulTheme;
 
 pub fn get_options() -> Vec<&'static str> {
@@ -163,7 +164,7 @@ pub fn get_value(index: usize) -> String {
 
 pub fn select(theme: &ColorfulTheme) -> String {
     let options = get_options();
-    let selected = dialoguer::FuzzySelect::with_theme(theme)
+    let selected = dialoguer::Select::with_theme(theme)
         .with_prompt("Select an emoji")
         .items(&options)
         .default(0)

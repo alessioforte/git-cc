@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+colored = "3.0.0"
 console = "0.15.11"
 dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
 serde = { version = "1.0.219", features = ["derive"] }

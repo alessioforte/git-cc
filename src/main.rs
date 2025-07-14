@@ -3,14 +3,11 @@ mod settings;
 mod steps;
 
 use crate::steps::{confirm::confirm, emoji, kind, scope, subject};
-use console::Style;
 use dialoguer::theme::ColorfulTheme;
 
 fn main() {
-    let theme = ColorfulTheme {
-        prompt_style: Style::new().color256(102).bold(),
-        ..ColorfulTheme::default()
-    };
+    let theme = ColorfulTheme::default();
+    println!("");
 
     let t = kind::select(&theme);
     let s = scope::select(&theme).unwrap_or("".to_string());
@@ -23,10 +20,12 @@ fn main() {
     formatters::print_commit(&commit);
 
     if !confirm(&theme) {
+        println!("");
         println!("❌ Commit cancelled.");
         return;
     }
 
+    println!("");
     let status = steps::cmd::run_cmd(&commit);
     if !status.success() {
         eprintln!("Git commit failed with status: {}", status);

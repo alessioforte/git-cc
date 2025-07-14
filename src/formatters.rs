@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 pub fn format_commit(
     kind: &str,
     scope: &str,
@@ -29,7 +31,7 @@ pub fn format_commit(
 
 pub fn print_commit(commit: &str) {
     println!("");
-    let padded = commit.replace("\n", "\n    ");
+    let padded = commit.replace("\n", "\n    ").blue();
     println!("    {}", padded);
     println!("");
 }

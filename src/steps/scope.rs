@@ -1,3 +1,4 @@
+use colored::Colorize;
 use dialoguer::theme::ColorfulTheme;
 
 use crate::settings::get_settings;
@@ -15,7 +16,7 @@ fn get_options() -> Vec<String> {
     });
 
     options.push("New scope".to_string());
-    options.push("New scope (only use once)".to_string());
+    options.push(format!("New scope {}", "(only use once)".dimmed()));
     options
 }
 
