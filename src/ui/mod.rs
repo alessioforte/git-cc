@@ -208,7 +208,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             InputMode::Insert => "  Type to edit | Ctrl+D: Done | Esc: Normal mode",
         },
         Step::Confirm => {
-            "  ←/→: Navigate | Enter: Select | Esc: Quit"
+            "  Enter: Commit | Backspace: Back | Ctrl+C: Quit"
         }
     };
 

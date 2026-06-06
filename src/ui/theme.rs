@@ -47,14 +47,3 @@ pub fn error_style() -> Style {
 pub fn border_style() -> Style {
     Style::default().fg(PRIMARY)
 }
-
-pub fn confirm_button_selected() -> Style {
-    Style::default()
-        .bg(PRIMARY)
-        .fg(Color::Black)
-        .add_modifier(Modifier::BOLD)
-}
-
-pub fn confirm_button_normal() -> Style {
-    Style::default().fg(Color::White)
-}

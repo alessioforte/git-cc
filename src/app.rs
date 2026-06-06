@@ -225,9 +225,6 @@ pub struct App<'a> {
     pub desc_mode: InputMode,
     pub breaking_textarea: TextArea<'a>,
     pub breaking_mode: InputMode,
-
-    // Confirm step
-    pub confirm_cursor: usize, // 0=Confirm, 1=Go Back, 2=Cancel
 }
 
 impl<'a> App<'a> {
@@ -300,8 +297,6 @@ impl<'a> App<'a> {
             desc_mode: InputMode::Normal,
             breaking_textarea,
             breaking_mode: InputMode::Normal,
-
-            confirm_cursor: 0,
         }
     }
 

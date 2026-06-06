@@ -1,4 +1,4 @@
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
@@ -13,8 +13,6 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
             Constraint::Length(1), // title
             Constraint::Length(1), // spacer
             Constraint::Min(5),   // preview block
-            Constraint::Length(1), // spacer
-            Constraint::Length(1), // buttons
         ])
         .split(area);
 
@@ -37,25 +35,4 @@ pub fn render(frame: &mut Frame, area: Rect, app: &App) {
         .wrap(Wrap { trim: false });
 
     frame.render_widget(preview, chunks[2]);
-
-    // Action buttons
-    let button_labels = ["  Commit  ", "  Go Back  ", "  Cancel  "];
-    let mut spans: Vec<Span> = Vec::new();
-    spans.push(Span::raw("      "));
-
-    for (i, label) in button_labels.iter().enumerate() {
-        let style = if i == app.confirm_cursor {
-            theme::confirm_button_selected()
-        } else {
-            theme::confirm_button_normal()
-        };
-
-        spans.push(Span::styled(format!("[{}]", label), style));
-        if i < button_labels.len() - 1 {
-            spans.push(Span::raw("    "));
-        }
-    }
-
-    let buttons = Paragraph::new(Line::from(spans)).alignment(Alignment::Left);
-    frame.render_widget(buttons, chunks[4]);
 }

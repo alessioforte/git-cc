@@ -4,6 +4,12 @@ use crate::app::{App, InputMode, Step};
 use crate::settings;
 
 pub fn handle_key_event(app: &mut App, key: KeyEvent) {
+    // Ctrl+C always quits the flow
+    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        app.running = false;
+        return;
+    }
+
     // Esc behavior depends on context
     if key.code == KeyCode::Esc {
         // In scope input mode, go back to scope select
@@ -44,8 +50,7 @@ pub fn handle_key_event(app: &mut App, key: KeyEvent) {
             }
             _ => {}
         }
-        // In Normal mode, Esc quits
-        app.running = false;
+        // In Normal mode, Esc does nothing (use Ctrl+C to quit)
         return;
     }
 
@@ -469,48 +474,12 @@ fn handle_textarea(app: &mut App, key: KeyEvent, is_breaking: bool) {
 
 fn handle_confirm(app: &mut App, key: KeyEvent) {
     match key.code {
-        KeyCode::Left | KeyCode::Char('h') => {
-            if app.confirm_cursor > 0 {
-                app.confirm_cursor -= 1;
-            }
-        }
-        KeyCode::Right | KeyCode::Char('l') => {
-            if app.confirm_cursor < 2 {
-                app.confirm_cursor += 1;
-            }
-        }
-        KeyCode::Tab => {
-            app.confirm_cursor = (app.confirm_cursor + 1) % 3;
-        }
-        KeyCode::BackTab => {
-            app.confirm_cursor = if app.confirm_cursor == 0 {
-                2
-            } else {
-                app.confirm_cursor - 1
-            };
-        }
-        KeyCode::Enter => match app.confirm_cursor {
-            0 => {
-                // Confirm
-                app.committed = true;
-                app.running = false;
-            }
-            1 => {
-                // Go Back
-                app.go_back();
-            }
-            2 => {
-                // Cancel
-                app.running = false;
-            }
-            _ => {}
-        },
-        KeyCode::Char('c') => {
+        KeyCode::Enter => {
             app.committed = true;
             app.running = false;
         }
-        KeyCode::Char('q') => {
-            app.running = false;
+        KeyCode::Backspace => {
+            app.go_back();
         }
         _ => {}
     }
