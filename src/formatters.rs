@@ -1,5 +1,3 @@
-use colored::Colorize;
-
 pub fn format_commit(
     kind: &str,
     scope: &str,
@@ -18,20 +16,13 @@ pub fn format_commit(
 
     let mut commit = format!("{}{}{}: {} {}", kind, s, ex, emoji, subject);
 
-    if description.is_some() {
-        commit = format!("{}\n\n{}", commit, description.as_ref().unwrap());
+    if let Some(ref desc) = description {
+        commit = format!("{}\n\n{}", commit, desc);
     }
 
-    if breaking_changes.is_some() {
-        commit = format!("{}\n\n{}", commit, breaking_changes.as_ref().unwrap());
+    if let Some(ref bc) = breaking_changes {
+        commit = format!("{}\n\n{}", commit, bc);
     }
 
     commit
-}
-
-pub fn print_commit(commit: &str) {
-    println!("");
-    let padded = commit.replace("\n", "\n    ").blue();
-    println!("    {}", padded);
-    println!("");
 }
