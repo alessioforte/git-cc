@@ -53,7 +53,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
                     frame,
                     input_area,
                     "Enter the new scope",
-                    &app.scope_input.clone(),
+                    Paragraph::new(format!("{}_", app.scope_input)),
                     crate::app::InputMode::Insert,
                     None,
                 );
@@ -87,7 +87,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
                 frame,
                 input_area,
                 "Write a short, imperative tense description of the change",
-                &app.subject_input.clone(),
+                text_input::SingleLine(&app.subject_input),
                 app.subject_mode,
                 error,
             );
@@ -196,8 +196,8 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             InputMode::Insert => "  ↑/↓: Navigate | Type to filter | Enter: Select | Esc: Normal mode",
         },
         Step::Subject => match app.subject_mode {
-            InputMode::Normal => "  i: Insert | Enter: Confirm | Backspace: Back | Esc: Quit",
-            InputMode::Insert => "  Type to edit | Enter: Confirm | Esc: Normal mode",
+            InputMode::Normal => "  h/j/k/l: Move | w/b: Word | i: Insert | a: Append | Enter: Confirm | Backspace: Back | Ctrl+C: Quit",
+            InputMode::Insert => "  Type to edit | Enter/Ctrl+D: Confirm | Esc: Normal mode",
         },
         Step::Description => match app.desc_mode {
             InputMode::Normal => "  h/j/k/l: Move | i: Insert | a: Append | o: Open line | Enter: Done | Backspace: Back | Esc: Quit",
@@ -208,7 +208,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             InputMode::Insert => "  Type to edit | Ctrl+D: Done | Esc: Normal mode",
         },
         Step::Confirm => {
-            "  Enter: Commit | Backspace: Back | Ctrl+C: Quit"
+            "  ↑/↓, j/k: Scroll | PgUp/PgDn: Page | Home/End: Top/Bottom | Enter: Commit | Backspace: Back | Ctrl+C: Quit"
         }
     };
 

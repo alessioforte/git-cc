@@ -218,17 +218,24 @@ pub struct App<'a> {
     pub scope_input: String,
     pub scope_save: bool,
     pub emoji_select: SelectState,
-    pub subject_input: String,
+    pub subject_input: TextArea<'a>,
     pub subject_error: bool,
     pub subject_mode: InputMode,
     pub desc_textarea: TextArea<'a>,
     pub desc_mode: InputMode,
     pub breaking_textarea: TextArea<'a>,
     pub breaking_mode: InputMode,
+    pub preview_scroll: u16,
+    pub preview_max_scroll: u16,
+    pub preview_height: u16,
 }
 
 impl<'a> App<'a> {
     pub fn new() -> Self {
+        Self::with_settings(settings::get_settings())
+    }
+
+    pub fn with_settings(settings: settings::Settings) -> Self {
         // Build kind items
         let kind_items: Vec<(String, String)> = KINDS
             .iter()
@@ -241,7 +248,6 @@ impl<'a> App<'a> {
             .collect();
 
         // Build scope items from settings
-        let settings = settings::get_settings();
         let mut scope_items: Vec<(String, String)> = vec![("".to_string(), "None".to_string())];
         for s in &settings.scopes {
             scope_items.push((s.clone(), s.clone()));
@@ -290,19 +296,25 @@ impl<'a> App<'a> {
             scope_input: String::new(),
             scope_save: false,
             emoji_select: SelectState::new(emoji_items),
-            subject_input: String::new(),
+            subject_input: TextArea::default(),
             subject_error: false,
             subject_mode: InputMode::Normal,
             desc_textarea,
             desc_mode: InputMode::Normal,
             breaking_textarea,
             breaking_mode: InputMode::Normal,
+            preview_scroll: 0,
+            preview_max_scroll: 0,
+            preview_height: 0,
         }
     }
 
     pub fn go_next(&mut self) {
         if let Some(next) = self.step.next() {
             self.step = next;
+            if next == Step::Confirm {
+                self.preview_scroll = 0;
+            }
         }
     }
 
