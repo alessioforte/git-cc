@@ -1,22 +1,29 @@
-use crate::settings;
-use std::io::Write;
-use std::process::ExitStatus;
+use std::io::{self, Write};
+use std::process::{Command, ExitStatus, Stdio};
 
-pub fn run_cmd(commit: &str) -> ExitStatus {
-    let tmp_path = settings::get_temp_commit_msq_path();
-    let mut file = std::fs::File::create(&tmp_path).expect("Unable to create file");
-    file.write_all(commit.as_bytes())
-        .expect("Unable to write data to file");
+/// Commits the staged changes with `message` provided on stdin.
+///
+/// Passing the message through stdin avoids writing a temporary file in the
+/// working tree, so an existing `git_commit.txt` can no longer be overwritten
+/// and failed runs cannot leave files behind.
+pub fn commit(message: &str) -> io::Result<ExitStatus> {
+    let mut child = Command::new("git")
+        .args(["commit", "-F", "-"])
+        .stdin(Stdio::piped())
+        .spawn()?;
 
-    let status = std::process::Command::new("git")
-        .arg("commit")
-        .arg("-F")
-        .arg(&tmp_path)
-        .status()
-        .expect("Failed to execute git commit");
+    let mut stdin = child.stdin.take().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::BrokenPipe, "git commit stdin was not piped")
+    })?;
+    let write_result = stdin.write_all(message.as_bytes());
+    drop(stdin);
 
-    // Clean up the temporary file
-    std::fs::remove_file(tmp_path).expect("Failed to remove temporary file");
+    let status = child.wait()?;
 
-    status
+    match write_result {
+        // Git closes the pipe early when it aborts (for example on a failing
+        // hook); its exit status then carries the useful information.
+        Err(err) if err.kind() != io::ErrorKind::BrokenPipe => Err(err),
+        _ => Ok(status),
+    }
 }

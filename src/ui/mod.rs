@@ -23,6 +23,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
 
     // Breadcrumb
     breadcrumb::render(frame, chunks[0], app.step);
+    render_status(frame, chunks[0], app);
 
     // Main content area
     let main_area = chunks[1];
@@ -216,5 +217,73 @@ fn indented(area: Rect) -> Rect {
         x: area.x.saturating_add(2),
         width: area.width.saturating_sub(2),
         ..area
+    }
+}
+
+/// Shows a failed commit or a settings warning on the row below the breadcrumb.
+fn render_status(frame: &mut Frame, area: Rect, app: &App) {
+    let (message, style) = match (&app.commit_error, &app.notice) {
+        (Some(error), _) => (error.as_str(), theme::error_style()),
+        (None, Some(notice)) => (notice.as_str(), theme::filter_style()),
+        (None, None) => return,
+    };
+
+    // The breadcrumb gets two rows only when the terminal is tall enough.
+    if area.height < 2 {
+        return;
+    }
+
+    let line = Paragraph::new(Line::from(vec![
+        Span::raw("  "),
+        Span::styled(message, style),
+    ]));
+    let status_area = Rect::new(area.x, area.y + 1, area.width, 1);
+    frame.render_widget(line, status_area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::settings::Settings;
+    use ratatui::backend::TestBackend;
+    use ratatui::Terminal;
+
+    fn draw(app: &mut App) -> String {
+        let mut terminal = Terminal::new(TestBackend::new(72, 12)).unwrap();
+        terminal.draw(|frame| render(frame, app)).unwrap();
+        terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect()
+    }
+
+    #[test]
+    fn render_reports_commit_errors_and_settings_notices() {
+        let mut app = App::with_settings(Settings::new());
+        app.step = Step::Confirm;
+
+        app.commit_error = Some("Commit failed (exit code 1)".into());
+        let screen = draw(&mut app);
+        assert!(screen.contains("Commit failed (exit code 1)"));
+
+        app.commit_error = None;
+        app.notice = Some("settings.json was invalid".into());
+        let screen = draw(&mut app);
+        assert!(screen.contains("settings.json was invalid"));
+        assert!(!screen.contains("Commit failed"));
+    }
+
+    #[test]
+    fn render_handles_tiny_terminals_with_a_status_message() {
+        for (width, height) in [(0, 0), (1, 1), (2, 1), (3, 2), (4, 3)] {
+            let mut app = App::with_settings(Settings::new());
+            app.step = Step::Confirm;
+            app.commit_error = Some("Commit failed".into());
+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+            terminal.draw(|frame| render(frame, &mut app)).unwrap();
+        }
     }
 }

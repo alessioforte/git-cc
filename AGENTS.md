@@ -16,7 +16,7 @@ Settings are serialized as JSON with Serde. There is no library target or worksp
 - `src/handler.rs`: keyboard handling, field validation, and scope persistence.
 - `src/event.rs`: terminal event polling.
 - `src/formatters.rs`: commit message construction, shared by preview and execution.
-- `src/cmd.rs`: temporary message file creation, Git subprocess, and file cleanup.
+- `src/cmd.rs`: Git subprocess invocation; the commit message is passed on stdin.
 - `src/settings.rs`: Git directory discovery and saved scopes.
 - `src/data/`: static commit kinds and emoji entries; emoji display glyphs and
   stored shortcodes are separate fields.
@@ -74,15 +74,19 @@ binary by absolute path from that repository.
   mode; Enter at Confirm commits.
 - Saved scopes live in `.git/cc/settings.json` as a `scopes` array. Creating a
   saved scope writes immediately, even if the commit is later cancelled; the
-  one-use scope option does not persist it.
-- `find_git_root()` returns the `.git` directory, despite its name. Discovery
-  currently requires a physical `.git` directory and does not handle the `.git`
-  files used by linked worktrees and submodules. Use a normal temporary repository
-  for filesystem and interactive tests unless changing this behavior.
+  one-use scope option does not persist it. Invalid settings are renamed to
+  `settings.json.bak` and replaced by defaults, with a warning below the
+  breadcrumb.
+- `find_git_root()` returns the Git directory resolved by
+  `git rev-parse --absolute-git-dir`, despite its name, so linked worktrees and
+  submodules resolve through their `.git` indirection file. Use a temporary
+  repository for filesystem and interactive tests.
 - Confirmation commits the repository's staged changes; the app does not stage
-  files. It writes and then removes `git_commit.txt` in the current directory.
-  Use a disposable repository with sample staged files for end-to-end verification
-  so testing cannot commit real work or overwrite an existing message file.
+  files. The message is piped to `git commit -F -`, so nothing is written in the
+  working tree. If git fails, the TUI reopens with the error while keeping the
+  composed message, so the user can retry or go back to edit. Use a disposable
+  repository with sample staged files for end-to-end verification so testing
+  cannot commit real work.
 - For relevant behavior changes, add focused unit tests near the code with
   `#[cfg(test)]`, especially for formatting, filtering, and navigation. Isolate
   settings and Git tests from the developer's repository; `App::new()` reads real
@@ -92,7 +96,7 @@ binary by absolute path from that repository.
   modes, empty search results, cancellation, and terminal restoration. Verify the
   preview matches the resulting message when testing confirmation.
 
-Keep generated output and local state out of commits: `target/`, `git_commit.txt`,
-`.snippets/`, and `.claude/` are ignored. Recent commits use prefixes such as
+Keep generated output and local state out of commits: `target/`, `.snippets/`,
+and `.claude/` are ignored. Recent commits use prefixes such as
 `feat:`, `refactor:`, and `style:`; use a concise imperative subject when a commit
 is requested.

@@ -188,11 +188,7 @@ impl SelectState {
     }
 
     pub fn select_by_value(&mut self, value: &str) {
-        if let Some(pos) = self
-            .filtered
-            .iter()
-            .position(|&i| self.items[i].0 == value)
-        {
+        if let Some(pos) = self.filtered.iter().position(|&i| self.items[i].0 == value) {
             self.cursor = pos;
         }
     }
@@ -202,6 +198,8 @@ pub struct App<'a> {
     pub step: Step,
     pub running: bool,
     pub committed: bool,
+    pub commit_error: Option<String>,
+    pub notice: Option<String>,
 
     // Field values
     pub kind: Option<String>,
@@ -231,8 +229,11 @@ pub struct App<'a> {
 }
 
 impl<'a> App<'a> {
-    pub fn new() -> Self {
-        Self::with_settings(settings::get_settings())
+    pub fn new() -> Result<Self, settings::Error> {
+        let loaded = settings::load()?;
+        let mut app = Self::with_settings(loaded.settings);
+        app.notice = loaded.notice;
+        Ok(app)
     }
 
     pub fn with_settings(settings: settings::Settings) -> Self {
@@ -252,10 +253,7 @@ impl<'a> App<'a> {
         for s in &settings.scopes {
             scope_items.push((s.clone(), s.clone()));
         }
-        scope_items.push((
-            "__new_scope__".to_string(),
-            "New scope".to_string(),
-        ));
+        scope_items.push(("__new_scope__".to_string(), "New scope".to_string()));
         scope_items.push((
             "__new_scope_once__".to_string(),
             "New scope (only use once)".to_string(),
@@ -282,6 +280,8 @@ impl<'a> App<'a> {
             step: Step::Kind,
             running: true,
             committed: false,
+            commit_error: None,
+            notice: None,
 
             kind: None,
             scope: None,
@@ -312,6 +312,7 @@ impl<'a> App<'a> {
     pub fn go_next(&mut self) {
         if let Some(next) = self.step.next() {
             self.step = next;
+            self.commit_error = None;
             if next == Step::Confirm {
                 self.preview_scroll = 0;
             }
@@ -321,6 +322,7 @@ impl<'a> App<'a> {
     pub fn go_back(&mut self) {
         if let Some(prev) = self.step.prev() {
             self.step = prev;
+            self.commit_error = None;
             match prev {
                 Step::Kind => {
                     self.kind_select.reset_filter();

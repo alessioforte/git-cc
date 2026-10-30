@@ -139,11 +139,7 @@ fn handle_select_normal(app: &mut App, key: KeyEvent, step_kind: StepKind) {
                             app.scope_input.clear();
                             app.scope_select.exit_insert();
                         } else {
-                            app.scope = if value.is_empty() {
-                                None
-                            } else {
-                                Some(value)
-                            };
+                            app.scope = if value.is_empty() { None } else { Some(value) };
                             app.scope_select.exit_insert();
                             app.go_next();
                         }
@@ -192,11 +188,7 @@ fn handle_select_insert(app: &mut App, key: KeyEvent, step_kind: StepKind) {
                             app.scope_input.clear();
                             app.scope_select.exit_insert();
                         } else {
-                            app.scope = if value.is_empty() {
-                                None
-                            } else {
-                                Some(value)
-                            };
+                            app.scope = if value.is_empty() { None } else { Some(value) };
                             app.scope_select.exit_insert();
                             app.go_next();
                         }
@@ -231,11 +223,10 @@ fn handle_scope_input(app: &mut App, key: KeyEvent) {
             if !app.scope_input.is_empty() {
                 let scope_name = app.scope_input.clone();
                 if app.scope_save {
-                    let mut settings_data = settings::get_settings();
-                    if !settings_data.scopes.contains(&scope_name) {
-                        settings_data.scopes.push(scope_name.clone());
-                    }
-                    settings_data.save();
+                    app.notice = match settings::save_scope(&scope_name) {
+                        Ok(()) => None,
+                        Err(err) => Some(format!("Could not save scope: {err}")),
+                    };
                     // Update scope select items to include the new scope
                     let insert_pos = app.scope_select.items.len() - 2;
                     app.scope_select
@@ -384,6 +375,7 @@ fn handle_confirm(app: &mut App, key: KeyEvent) {
         KeyCode::Home | KeyCode::Char('g') => app.preview_scroll = 0,
         KeyCode::End | KeyCode::Char('G') => app.preview_scroll = app.preview_max_scroll,
         KeyCode::Enter => {
+            app.commit_error = None;
             app.committed = true;
             app.running = false;
         }
