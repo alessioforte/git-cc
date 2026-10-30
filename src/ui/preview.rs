@@ -1,6 +1,6 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::App;
@@ -25,12 +25,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &mut App) {
 
     // Commit preview
     let commit_text = app.formatted_commit();
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(theme::border_style())
-        .title(Span::styled(" Commit Message ", theme::title_style()));
-    let inner = block.inner(chunks[2]);
-    frame.render_widget(block, chunks[2]);
+    let inner = chunks[2];
 
     app.preview_height = inner.height;
     if inner.is_empty() {
@@ -39,7 +34,7 @@ pub fn render(frame: &mut Frame, area: Rect, app: &mut App) {
         return;
     }
 
-    let preview = Paragraph::new(format!("\n  {}\n", commit_text.replace('\n', "\n  ")))
+    let preview = Paragraph::new(format!("  {}\n", commit_text.replace('\n', "\n  ")))
         .wrap(Wrap { trim: false });
     let line_count = preview.line_count(inner.width);
     app.preview_max_scroll = line_count

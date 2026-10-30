@@ -1,29 +1,39 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::Modifier;
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 use crate::app::{InputMode, SelectState};
 use crate::ui::theme;
 
+const CURSOR: &str = "▸";
+
 pub fn render(frame: &mut Frame, area: Rect, state: &mut SelectState, title: &str, prompt: &str) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
+            Constraint::Length(1), // title
             Constraint::Length(1), // prompt
             Constraint::Length(1), // filter input
             Constraint::Length(1), // spacer
-            Constraint::Min(3),   // list
+            Constraint::Min(3),    // list
         ])
         .split(area);
+
+    // Title
+    let title_line = Paragraph::new(Line::from(vec![
+        Span::raw("  "),
+        Span::styled(title, theme::title_style()),
+    ]));
+    frame.render_widget(title_line, chunks[0]);
 
     // Prompt
     let prompt_line = Paragraph::new(Line::from(vec![
         Span::raw("  "),
-        Span::styled(prompt, theme::title_style()),
+        Span::styled(prompt, theme::dimmed_style()),
     ]));
-    frame.render_widget(prompt_line, chunks[0]);
+    frame.render_widget(prompt_line, chunks[1]);
 
     // Filter input - show mode indicator
     let filter_display = match state.mode {
@@ -40,34 +50,19 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut SelectState, title: &st
                 ])
             }
         }
-        InputMode::Insert => {
-            Line::from(vec![
-                Span::styled("  INSERT", theme::filter_style()),
-                Span::styled(format!("  > {}_", state.filter), theme::filter_style()),
-            ])
-        }
+        InputMode::Insert => Line::from(vec![
+            Span::styled("  INSERT", theme::filter_style()),
+            Span::styled(format!("  > {}_", state.filter), theme::filter_style()),
+        ]),
     };
     let filter_line = Paragraph::new(filter_display);
-    frame.render_widget(filter_line, chunks[1]);
+    frame.render_widget(filter_line, chunks[2]);
 
     // List area
-    let list_area = chunks[3];
+    let list_area = chunks[4];
+    let inner_height = list_area.height as usize;
 
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(theme::border_style())
-        .title(Span::styled(
-            format!(" {} ", title),
-            theme::title_style(),
-        ));
-
-    let inner = block.inner(list_area);
-    let inner_height = inner.height as usize;
-
-    // Adjust scroll offset using the actual inner height (excluding borders)
     state.adjust_offset_for_height(inner_height);
-
-    frame.render_widget(block, list_area);
 
     // Render visible items
     let end = (state.offset + inner_height).min(state.filtered.len());
@@ -80,21 +75,21 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut SelectState, title: &st
         let style = if is_selected {
             theme::selected_style()
         } else {
-            ratatui::style::Style::default()
+            Style::default()
         };
+        let cursor = if is_selected { CURSOR } else { " " };
 
         let item_area = Rect {
-            x: inner.x,
-            y: inner.y + row as u16,
-            width: inner.width,
+            x: list_area.x,
+            y: list_area.y + row as u16,
+            width: list_area.width,
             height: 1,
         };
 
-        // Pad the display string to fill the entire row width so the
-        // highlight background spans the full row, not just the text.
-        let text = format!(" {} ", label);
-        let padded = format!("{:<width$}", text, width = inner.width as usize);
-        let line = Line::from(vec![Span::styled(padded, style)]);
+        let line = Line::from(vec![
+            Span::styled(format!("  {cursor} "), style),
+            Span::styled(label.as_str(), style),
+        ]);
 
         frame.render_widget(Paragraph::new(line), item_area);
     }
@@ -109,18 +104,48 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut SelectState, title: &st
         let indicator_pos = (ratio * (inner_height.saturating_sub(1)) as f64) as u16;
 
         let scroll_area = Rect {
-            x: inner.x + inner.width.saturating_sub(1),
-            y: inner.y + indicator_pos,
+            x: list_area.x + list_area.width.saturating_sub(1),
+            y: list_area.y + indicator_pos,
             width: 1,
             height: 1,
         };
         frame.render_widget(
-            Paragraph::new("█").style(
-                ratatui::style::Style::default()
-                    .fg(theme::PRIMARY)
-                    .add_modifier(Modifier::BOLD),
-            ),
+            Paragraph::new("█").style(theme::selected_style()),
             scroll_area,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::backend::TestBackend;
+    use ratatui::style::Color;
+    use ratatui::Terminal;
+
+    #[test]
+    fn selection_uses_color_and_left_cursor_without_highlight() {
+        let items = vec![
+            ("feat".to_string(), "feat  A new feature".to_string()),
+            ("fix".to_string(), "fix   A bug fix".to_string()),
+        ];
+        let mut state = SelectState::new(items);
+        let mut terminal = Terminal::new(TestBackend::new(40, 10)).unwrap();
+        terminal
+            .draw(|frame| render(frame, frame.area(), &mut state, "Commit Types", "Pick one:"))
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        // Title, prompt, filter line and spacer precede the list.
+        assert_eq!(buffer[(2, 4)].symbol(), CURSOR);
+        assert_eq!(buffer[(2, 4)].fg, theme::PRIMARY);
+        assert_eq!(buffer[(2, 4)].bg, Color::Reset);
+        assert_eq!(buffer[(4, 4)].symbol(), "f");
+        assert_eq!(buffer[(4, 4)].fg, theme::PRIMARY);
+
+        assert_eq!(buffer[(2, 5)].symbol(), " ");
+        assert_eq!(buffer[(4, 5)].symbol(), "f");
+        assert_eq!(buffer[(4, 5)].fg, Color::Reset);
+        assert_eq!(buffer[(4, 5)].bg, Color::Reset);
     }
 }

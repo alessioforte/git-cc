@@ -6,7 +6,7 @@ pub mod theme;
 
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 use crate::app::{App, Step};
@@ -16,7 +16,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(2), // breadcrumb + separator
-            Constraint::Min(5),   // main content
+            Constraint::Min(5),    // main content
             Constraint::Length(1), // help footer
         ])
         .split(frame.area());
@@ -97,20 +97,12 @@ pub fn render(frame: &mut Frame, app: &mut App) {
                 crate::app::InputMode::Normal => " NORMAL ",
                 crate::app::InputMode::Insert => " INSERT ",
             };
-            let block = Block::default()
-                .borders(Borders::ALL)
-                .border_style(theme::border_style())
-                .title(Span::styled(
-                    " Description (optional) ",
-                    theme::title_style(),
-                ));
-
             let textarea_area = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Length(1), // prompt + mode
                     Constraint::Length(1), // spacer
-                    Constraint::Min(3),   // textarea
+                    Constraint::Min(3),    // textarea
                 ])
                 .split(padded);
 
@@ -129,22 +121,13 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             ]));
             frame.render_widget(prompt, textarea_area[0]);
 
-            app.desc_textarea.set_block(block);
-            frame.render_widget(&app.desc_textarea, textarea_area[2]);
+            frame.render_widget(&app.desc_textarea, indented(textarea_area[2]));
         }
         Step::Breaking => {
             let mode_label = match app.breaking_mode {
                 crate::app::InputMode::Normal => " NORMAL ",
                 crate::app::InputMode::Insert => " INSERT ",
             };
-            let block = Block::default()
-                .borders(Borders::ALL)
-                .border_style(theme::border_style())
-                .title(Span::styled(
-                    " Breaking Changes (optional) ",
-                    theme::title_style(),
-                ));
-
             let textarea_area = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
@@ -160,17 +143,13 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             };
             let prompt = Paragraph::new(Line::from(vec![
                 Span::raw("  "),
-                Span::styled(
-                    "Describe any breaking changes:",
-                    theme::title_style(),
-                ),
+                Span::styled("Describe any breaking changes:", theme::title_style()),
                 Span::raw("  "),
                 Span::styled(mode_label, mode_style),
             ]));
             frame.render_widget(prompt, textarea_area[0]);
 
-            app.breaking_textarea.set_block(block);
-            frame.render_widget(&app.breaking_textarea, textarea_area[2]);
+            frame.render_widget(&app.breaking_textarea, indented(textarea_area[2]));
         }
         Step::Confirm => {
             preview::render(frame, padded, app);
@@ -212,9 +191,10 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         }
     };
 
-    let help = Paragraph::new(Line::from(vec![
-        Span::styled(help_text, theme::help_style()),
-    ]));
+    let help = Paragraph::new(Line::from(vec![Span::styled(
+        help_text,
+        theme::help_style(),
+    )]));
     frame.render_widget(help, chunks[2]);
 }
 
@@ -223,9 +203,18 @@ fn centered_input_area(area: Rect) -> Rect {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(1),
-            Constraint::Min(6), // mode + spacer + input box + error
+            Constraint::Min(6), // mode + prompt + spacer + input + error
             Constraint::Min(0),
         ])
         .split(area);
     v[1]
+}
+
+/// Leave room for the list cursor and keep content aligned across steps.
+fn indented(area: Rect) -> Rect {
+    Rect {
+        x: area.x.saturating_add(2),
+        width: area.width.saturating_sub(2),
+        ..area
+    }
 }

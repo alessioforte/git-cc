@@ -1,7 +1,7 @@
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Direction, Layout, Margin, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph, Widget};
+use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Frame;
 use tui_textarea::TextArea;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
@@ -21,10 +21,11 @@ pub fn render(
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(1), // mode indicator
+            Constraint::Length(1), // prompt
             Constraint::Length(1), // spacer
-            Constraint::Length(3), // input box
+            Constraint::Length(1), // input
             Constraint::Length(1), // error
-            Constraint::Min(0),   // rest
+            Constraint::Min(0),    // rest
         ])
         .split(area);
 
@@ -43,16 +44,20 @@ pub fn render(
     ]));
     frame.render_widget(mode_line, chunks[0]);
 
-    // Input box
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(theme::border_style())
-        .title(Span::styled(format!(" {} ", prompt), theme::title_style()));
+    // Prompt
+    let prompt_line = Paragraph::new(Line::from(vec![
+        Span::raw("  "),
+        Span::styled(prompt, theme::title_style()),
+    ]));
+    frame.render_widget(prompt_line, chunks[1]);
 
-    let inner = block.inner(chunks[2]);
-    frame.render_widget(block, chunks[2]);
-
-    frame.render_widget(input, inner.inner(Margin::new(1, 0)));
+    // Input
+    let input_area = Rect {
+        x: chunks[3].x.saturating_add(2),
+        width: chunks[3].width.saturating_sub(2),
+        ..chunks[3]
+    };
+    frame.render_widget(input, input_area);
 
     // Error message
     if let Some(err_msg) = error {
@@ -60,7 +65,7 @@ pub fn render(
             Span::raw("  "),
             Span::styled(err_msg, theme::error_style()),
         ]));
-        frame.render_widget(err_line, chunks[3]);
+        frame.render_widget(err_line, chunks[4]);
     }
 }
 
@@ -131,7 +136,7 @@ mod tests {
                 })
                 .unwrap();
             let buffer = terminal.backend().buffer();
-            let cursor_x = (2..12)
+            let cursor_x = (2..14)
                 .find(|&x| buffer[(x, 3)].modifier.contains(Modifier::REVERSED))
                 .unwrap_or_else(|| panic!("cursor should be visible: {buffer:?}"));
             if movement == CursorMove::End {

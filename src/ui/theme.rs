@@ -11,7 +11,7 @@ pub fn title_style() -> Style {
 }
 
 pub fn selected_style() -> Style {
-    Style::default().bg(PRIMARY).fg(Color::Black)
+    Style::default().fg(PRIMARY).add_modifier(Modifier::BOLD)
 }
 
 pub fn dimmed_style() -> Style {
@@ -23,9 +23,7 @@ pub fn filter_style() -> Style {
 }
 
 pub fn breadcrumb_current() -> Style {
-    Style::default()
-        .fg(PRIMARY)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(PRIMARY).add_modifier(Modifier::BOLD)
 }
 
 pub fn breadcrumb_done() -> Style {
@@ -42,8 +40,4 @@ pub fn help_style() -> Style {
 
 pub fn error_style() -> Style {
     Style::default().fg(DANGER).add_modifier(Modifier::BOLD)
-}
-
-pub fn border_style() -> Style {
-    Style::default().fg(PRIMARY)
 }
